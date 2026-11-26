@@ -17,15 +17,16 @@ from PIL import Image, ImageFilter
 
 # ------------------------------ настройки --------------------------------
 SCREEN_W, SCREEN_H = 2560, 1440
-CELL_W, CELL_H = 10, 16            # размер клетки с символом (меньше = детальнее, но медленнее)
-FONT_SIZE = 15
+CELL_W, CELL_H = 16, 24            # размер клетки с символом (меньше = детальнее, но медленнее)
+FONT_SIZE = 21
 FPS = 30
 FIT = "stretch"                    # "stretch" - растянуть на весь экран, "cover" - с обрезкой, "contain" - с чёрными полями
 CHARS = " .'`,:;-~+=*ilItfLCG08%#@"   # от тёмного к яркому
 HORIZON = 0.375                    # линия горизонта на фото (доля высоты)
 FADE_IN = 3.5                      # сек: разгорание сияния
-DARK_CUTOFF = 0.035
-BG_FILL = 0.22                     # слабая подложка под символом (0 - только буквы, больше - картинка плотнее)
+DARK_CUTOFF = 0.05
+SATURATION = 2.2                   # насыщенность цвета символов (1 - как на фото)
+BG_FILL = 0.0                      # подложка под символом: 0 - чистый ASCII на чёрном, 0.1-0.25 - картинка плотнее
 
 
 def smooth(x):
@@ -141,7 +142,10 @@ class Scene:
         flick = (self.rng.random(lum.shape, dtype=np.float32) - 0.5) * 0.05
         idx = np.clip((lum + flick * (lum > 0.08)) * (len(CHARS) - 1) * 1.15, 0, len(CHARS) - 1).astype(np.int32)
         idx[lum < DARK_CUTOFF] = 0
-        col = (np.clip(rgb ** 0.75 * 1.2, 0, 1) * 255).astype(np.uint8)
+        # цвет символа: ярче и насыщеннее оригинала, чтобы зелёное сияние читалось на чёрном
+        bright = np.clip(rgb ** 0.6 * 1.3, 0, 1)
+        grey = (bright @ np.array([0.299, 0.587, 0.114], np.float32))[..., None]
+        col = (np.clip(grey + (bright - grey) * SATURATION, 0, 1) * 255).astype(np.uint8)
         return idx, col
 
 
